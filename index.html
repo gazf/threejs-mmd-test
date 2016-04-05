@@ -26,17 +26,9 @@
 	</head>
 
 	<body>
-		<!--<div id="info">
-		<a href="http://threejs.org" target="_blank">three.js</a> - MMDLoader test<br />
-		Copyright
-		<a href="http://www.geocities.jp/higuchuu4/index_e.htm" target="_blank">Model Data</a>
-		<a href="http://www.nicovideo.jp/watch/sm13147122" target="_blank">Dance Data</a><br />
-		<a href="http://www.nicovideo.jp/watch/sm11938255" target="_blank">Audio Data</a>
-		<a href="http://www.deviantart.com/art/MMD-Rainbow-Stage-212433590" target="_blank">Stage Data</a><br />
-		<a href="http://www.nicovideo.jp/watch/sm19168559" target="_blank">Original Camera Data(I've customized this)</a>
-	</div>-->
+		<button id="start">start</button>
 
-		<script src="js/three.min.js"></script>
+		<script src="js/three.js"></script>
 
 		<script src="js/libs/charsetencoder.min.js"></script>
 		<script src="js/libs/ammo.js"></script>
@@ -49,7 +41,6 @@
 		<script src="js/libs/stats.min.js"></script>
 
 		<script>
-
 			var container, stats;
 
 			var mesh, camera, scene, renderer;
@@ -63,6 +54,10 @@
 			var windowHalfY = window.innerHeight / 2;
 
 			var clock = new THREE.Clock();
+
+			document.getElementById("start").onclick = function(){
+				ready = true;
+			};
 
 			init();
 			animate();
@@ -100,32 +95,113 @@
 				var onProgress = function ( xhr ) {
 					if ( xhr.lengthComputable ) {
 						var percentComplete = xhr.loaded / xhr.total * 100;
-						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+						//console.log( Math.round(percentComplete, 2) + '% downloaded' );
 					}
 				};
 
 				var onError = function ( xhr ) {};
 
 				var modelFile = 'mmd/models/mikuXS_rev_c/mikuXS.pmd';
-				var vmdFiles = [ 'mmd/motions/wavefile_full_miku_v2.vmd' ];
+				var vmdFile = 'mmd/motions/wavefile_full_miku_v2.vmd';
 				var stageFile = 'mmd/stage/stage.pmd';
 				var audioFile = 'audio/wavefile_full.mp3';
 				var audioParams = { delayTime: 0.2 };
 
 				helper = new THREE.MMDHelper( renderer );
-				//helper.doOutlineDrawing = false;
+				helper.doOutlineDrawing = false;
 
 				var loader = new THREE.MMDLoader();
 				loader.setDefaultTexturePath( './mmd/default_texture/' );
 
-				THREE.ShaderLib['mmd'].vertexShader = THREE.ShaderLib['mmd'].vertexShader.replace("float ratio = 1.0;", "float ratio = 0.3;");
+				//THREE.ShaderLib['mmd'].vertexShader = THREE.ShaderLib['mmd'].vertexShader.replace("float ratio = 1.0;", "float ratio = 0.0;");
 
-				loader.load( modelFile, vmdFiles, function ( object ) {
+				loader.asyncLoad = function(pm, vmds, progress){
+					return new Promise(function(resolve, reject){
+						console.log("asyncLoad", pm, vmds);
+						loader.load(pm, vmds,
+							function(object){
+								resolve(object);
+							},
+							function(xhr){
+								console.log("asyncLoad", xhr.loaded);
+								progress(xhr);
+							},
+							function(xhr){
+								reject(xhr);
+							}
+						);
+					});
+				};
 
-					console.log(object);
+				loader.asyncLoadVmd = function(url, progress){
+					return new Promise(function(resolve, reject){
+						loader.loadVmd(url,
+							function(vmd){
+								resolve(vmd);
+							},
+							function(xhr){
+								console.log("asyncLoadVmd", xhr.loaded);
+								progress(xhr);
+							},
+							function(xhr){
+								reject(xhr);
+							}
+						);
+					});
+				};
 
+				loader.asyncLoadModel = function(pm, progress){
+					return new Promise(function(resolve, reject){
+						loader.loadModel( pm,
+							function(object){
+								resolve(object);
+							},
+							function(xhr){
+								console.log("asyncLoadModel", xhr.loaded);
+								progress(xhr);
+							},
+							function(xhr){
+								reject(xhr);
+							}
+						);
+					});
+				};
 
-					mesh = object;
+				loader.asyncLoadAudio = function(audioFile, progress){
+					return new Promise(function(resolve, reject){
+						loader.loadAudio(audioFile,
+							function( audio, listener ){
+								resolve([audio, listener]);
+							},
+							function(xhr){
+								console.log("asyncLoadAudio", xhr.loaded);
+								progress(xhr);
+							},
+							function(xhr){
+								reject(xhr);
+							}
+						);
+					});
+				};
+
+				console.time("Resouce Loaded");
+				Promise.all([
+					loader.asyncLoadModel(modelFile, onProgress),
+					loader.asyncLoadVmd(vmdFile, onProgress),
+					loader.asyncLoadModel(stageFile, onProgress),
+					loader.asyncLoadAudio(audioFile, onProgress)
+				])
+				.then(function(results){
+					console.log("Promise.all ok", results);
+					console.timeEnd("Resouce Loaded");
+
+					var mesh = results[0];
+					var vmd = results[1];
+					var stage = results[2];
+					var audio = results[3][0];
+					var audioListener = results[3][1];
+
+					loader.pourVmdIntoModel( mesh, vmd );
 
 					mesh.castShadow = true;
 					mesh.receiveShadow = true;
@@ -133,44 +209,29 @@
 					helper.add( mesh );
 					helper.setAnimation( mesh );
 
+					if ( ! isMobileDevice() || true ) helper.setPhysics( mesh );
+
+					audioListener.position.z = 1;
+
+					helper.setAudio( audio, audioListener, audioParams );
+
 					/*
-					 * Note: You must set Physics
-					 *       before you add mesh to scene or any other 3D object.
-					 * Note: Physics calculation is pretty heavy.
-					 *       It may not be acceptable for most mobile devices yet.
-			 		 */
-					if ( ! isMobileDevice() || true ) {
+					 * Note: call this method after you set all animations
+					 *       including camera and audio.
+					 */
+					helper.unifyAnimationDuration();
 
-						helper.setPhysics( mesh );
+					scene.add( audio );
+					scene.add( audioListener );
+					scene.add( stage );
+					scene.add( mesh );
 
-					}
 
-					loader.loadModel( stageFile, function ( stage ) {
-
-						loader.loadAudio( audioFile, function ( audio, listener ) {
-
-							listener.position.z = 1;
-
-							helper.setAudio( audio, listener, audioParams );
-
-							/*
-							 * Note: call this method after you set all animations
-							 *       including camera and audio.
-							 */
-							helper.unifyAnimationDuration();
-
-							scene.add( audio );
-							scene.add( listener );
-							scene.add( stage );
-							scene.add( mesh );
-
-							ready = true;
-
-						}, onProgress, onError );
-
-					}, onProgress, onError );
-
-				}, onProgress, onError );
+					//ready = true;
+				})
+				.catch(function(e){
+					console.log("Promise.all ng", e);
+				});
 
 				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
@@ -253,6 +314,5 @@
 			}
 
 		</script>
-
 	</body>
 </html>
