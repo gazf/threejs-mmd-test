@@ -1,1 +1,1 @@
-# threejs-mmd-mikuxs
+# threejs-mmd-test
