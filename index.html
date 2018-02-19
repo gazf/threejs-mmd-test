@@ -47,7 +47,7 @@
 		<script>
 			var container, stats;
 
-			var mesh, camera, scene, renderer;
+			var mesh, camera, scene, renderer, effect;
 			var helper;
 
 			var ready = false;
@@ -93,6 +93,8 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setClearColor( new THREE.Color( 0xffffff ) );
 				container.appendChild( renderer.domElement );
+				
+				effect = new THREE.OutlineEffect( renderer );
 
 				// model
 
@@ -254,7 +256,7 @@
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
 
-				renderer.setSize( window.innerWidth, window.innerHeight );
+				effect.setSize( window.innerWidth, window.innerHeight );
 
 			}
 
@@ -277,18 +279,20 @@
 			function render() {
 
 				if ( ready ) {
-
-					var delta = clock.getDelta();
-					helper.animate( delta );
-					helper.render( scene, camera );
-
+					
+					helper.animate( clock.getDelta() );
+					if ( physicsHelper !== undefined && physicsHelper.visible ) physicsHelper.update();
+					if ( ikHelper !== undefined && ikHelper.visible ) ikHelper.update();
+					effect.render( scene, camera );
+					
 				} else {
 
-					renderer.clear();
-					renderer.render( scene, camera );
+					effect.clear();
+					effect.render( scene, camera );
 
 				}
-
+				
+				
 			}
 
 			// easy mobile device detection
