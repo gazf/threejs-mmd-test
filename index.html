@@ -48,7 +48,7 @@
 			var container, stats;
 
 			var mesh, camera, scene, renderer, effect;
-			var helper;
+			var helper, ikHelper, physicsHelper;
 
 			var ready = false;
 
@@ -215,8 +215,18 @@
 
 					helper.add( mesh );
 					helper.setAnimation( mesh );
+					
+					/*
+					 * Note: create CCDIKHelper after calling helper.setAnimation()
+					 */
+					ikHelper = new THREE.CCDIKHelper( mesh );
+					ikHelper.visible = false;
+					scene.add( ikHelper );
 
-					if ( ! isMobileDevice() || true ) helper.setPhysics( mesh );
+					helper.setPhysics( mesh );
+					physicsHelper = new THREE.MMDPhysicsHelper( mesh );
+					physicsHelper.visible = false;
+					scene.add( physicsHelper );
 
 					audioListener.position.z = 1;
 
