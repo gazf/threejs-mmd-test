@@ -94,7 +94,12 @@
 				renderer.setClearColor( new THREE.Color( 0xffffff ) );
 				container.appendChild( renderer.domElement );
 				
-				effect = new THREE.OutlineEffect( renderer );
+				effect = new THREE.OutlineEffect( renderer, {
+					defaultThickNess: 0.01,
+					defaultColor: new THREE.Color( 0x888888 ),
+					defaultAlpha: 0.8,
+					defaultKeepAlive: true // keeps outline material in cache even if material is removed from scene
+				} );
 
 				// model
 
