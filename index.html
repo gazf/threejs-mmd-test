@@ -97,8 +97,8 @@
 				effect = new THREE.OutlineEffect( renderer, {
 					defaultThickNess: 0.01,
 					defaultColor: new THREE.Color( 0x888888 ),
-					defaultAlpha: 0.08,
-					defaultKeepAlive: false // keeps outline material in cache even if material is removed from scene
+					defaultAlpha: 0.8,
+					defaultKeepAlive: true // keeps outline material in cache even if material is removed from scene
 				} );
 
 				// model
@@ -120,7 +120,7 @@
 				var audioParams = { delayTime: 0.2 };
 
 				helper = new THREE.MMDHelper( renderer );
-				helper.doOutlineDrawing = true;
+				helper.doOutlineDrawing = false;
 
 				var loader = new THREE.MMDLoader();
 				//loader.setDefaultTexturePath( './mmd/default_texture/' );
