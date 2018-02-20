@@ -217,6 +217,14 @@
 
 					mesh.castShadow = true;
 					mesh.receiveShadow = true;
+					
+					mesh.outlineParameters = {
+						thickness: 0.007,
+						color: new THREE.Color( 0xffffff ),
+						alpha: 10,
+						visible: true,
+						keepAlive: true
+					};
 
 					helper.add( mesh );
 					helper.setAnimation( mesh );
